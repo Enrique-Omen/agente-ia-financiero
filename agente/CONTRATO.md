@@ -1,6 +1,6 @@
 # Contrato del agente (protocolo §14-§16) · qué entra y qué sale de cada pieza
 
-Fuente: `../2026-11-10-cdeconomia-agente-primer-avance/enunciado/2133398/p.txt` (líneas 1887-2260). Escalón 1 = backend con modelo y pronóstico. Escalón 2 = Paper + riesgo + SQLite con la regla del Avance 3 (sin LLM).
+Fuente: enunciado del proyecto (§14-§16). Escalón 1 = backend con modelo y pronóstico. Escalón 2 = Paper + riesgo + SQLite con la regla del Avance 3 (sin LLM).
 
 ## Contrato de variables (igual que el Avance 5, versión final B)
 | Columna | Definición al cierre de la vela *t* (día UTC) |

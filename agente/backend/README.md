@@ -6,7 +6,7 @@ FastAPI que lee velas diarias **públicas** de MEXC (sin clave de trading), calc
 ## Instalar y correr
 ```bash
 pip install -r requirements.txt
-python modelo/exportar.py            # regenera modelo/v1/ y comprueba que coincide con el cuaderno del Avance 5
+# modelo/v1/ ya viene exportado. modelo/exportar.py lo regenera, pero necesita los datos del Avance 5 (no incluidos aquí).
 python -m pytest -q                  # 51 pruebas, sin red y con Ollama simulado (-m replay: solo el replay de 20 velas)
 python replay_llm.py 5               # 5 velas con Ollama REAL → datos/replay-llm.db
 # En el servidor: copiar entorno.ejemplo como .env, poner una clave larga y cargarla en el entorno

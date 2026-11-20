@@ -1,5 +1,5 @@
 """Exporta el modelo final del Avance 5 (versión B, entrenado solo con TR) y sus escaladores a modelo/v1/.
-Uso (desde agente/backend): ../../../../.venv/bin/python -I modelo/exportar.py
+Uso (desde agente/backend): python modelo/exportar.py
 Mismo procedimiento que la celda 5 del cuaderno del Avance 5; comprueba que el pronóstico al cierre de la última vela
 coincide con avance5/outputs/pronostico_futuro.json. Si el Avance 2 en T4 elige una red, este script se detiene."""
 import hashlib, json, os, platform, sys
