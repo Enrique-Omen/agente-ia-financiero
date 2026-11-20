@@ -1,0 +1,49 @@
+{
+ "version": "v1",
+ "modelo": "Regresión lineal (20 rezagos)",
+ "variables": "B: rezagos + indicadores",
+ "columnas": [
+  "r_lag0",
+  "r_lag1",
+  "r_lag2",
+  "r_lag3",
+  "r_lag4",
+  "r_lag5",
+  "r_lag6",
+  "r_lag7",
+  "r_lag8",
+  "r_lag9",
+  "r_lag10",
+  "r_lag11",
+  "r_lag12",
+  "r_lag13",
+  "r_lag14",
+  "r_lag15",
+  "r_lag16",
+  "r_lag17",
+  "r_lag18",
+  "r_lag19",
+  "dist_sma20",
+  "vol20"
+ ],
+ "objetivo": "rendimiento simple del día siguiente (vela diaria UTC de BTCUSDT en MEXC)",
+ "entrenado_con": "TR: 2067 ejemplos, 2018-09-12 a 2024-05-31",
+ "modo_avance2": "prueba_cpu",
+ "RMSE_VA": 0.02422836583398328,
+ "RMSE_TE": 0.02235802104630324,
+ "control": {
+  "vela": "2026-11-04",
+  "rendimiento_estimado": -0.0021132546500325445
+ },
+ "sha256_datos": {
+  "btcusdt_1d_auditado.csv": "1eee8273d73cef0e",
+  "ventanas_btcusdt_1d.csv": "7a2535bad75b28d5"
+ },
+ "versiones": {
+  "python": "3.12.3",
+  "numpy": "2.5.4",
+  "pandas": "3.1.0",
+  "scikit-learn": "1.9.1",
+  "joblib": "1.6.0"
+ }
+}

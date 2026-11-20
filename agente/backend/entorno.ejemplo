@@ -1,0 +1,11 @@
+# Ejemplo de configuración del servidor, sin valores reales. En el repo final se llama «.env.example».
+# Copiar como «.env» SOLO en el servidor y llenar. Nunca subirlo ni ponerlo en React/VITE.
+AGENTE_API_KEY=
+MAX_ANTIGUEDAD_H=36
+SIMBOLO=BTCUSDT
+EXPOSICION_MAX=1.0
+PERDIDA_DIARIA_MAX=0.10
+AGENTE_DB=datos/agente.db
+OLLAMA_URL=http://127.0.0.1:11434
+LLM_MODELO=qwen2.5:1.5b
+LLM_TIMEOUT_S=60

@@ -1,0 +1,9 @@
+{
+ "simbolo": "BTCUSDT",
+ "fuente": "https://api.mexc.com/api/v3/exchangeInfo?symbol=BTCUSDT",
+ "leido": "2026-11-05",
+ "paso_cantidad": "0.000001",
+ "monto_minimo_usdt": 1,
+ "monto_maximo_usdt": 4000000,
+ "nota": "paso_cantidad = baseSizePrecision; monto mínimo y máximo = quoteAmountPrecision y maxQuoteAmount de MEXC. Releer antes de la entrega."
+}
