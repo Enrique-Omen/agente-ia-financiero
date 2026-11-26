@@ -1,0 +1,3 @@
+# Copiar como ".env" en esta carpeta (no se sube) y llenar. Sin prefijo VITE_: la clave no llega al navegador.
+AGENTE_API_KEY=
+BACKEND_URL=http://127.0.0.1:8765
