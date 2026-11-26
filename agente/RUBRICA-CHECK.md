@@ -36,10 +36,10 @@ Fuente: protocolo §11. Estado según `PLAN.md` y los cuadernos de `../avances/`
 | Datos, capítulos 7 y 11 (10) | OK en `avances/avance1_cap7.ipynb` (sin re-ejecutar hoy) |
 | TR/VA/TE (15) | OK en `avance3.ipynb` |
 | Referencias y modelos (12) | OK en cuaderno del Avance 2, corrida en CPU; MLP y LSTM «funcionales» se validan con la corrida real en Colab |
-| **Uso efectivo de T4 (10)** | **solo Enrique**: abrir `avance2` en Colab con GPU T4, Entorno de ejecución → Cambiar tipo → T4, ejecutar todo, guardar el cuaderno con salidas (`nvidia-smi`, tiempos) y subirlo. Sin esa evidencia el apartado vale 0/10 |
+| **Uso efectivo de T4 (10)** | **OK (corrida hecha 26-nov en Colab T4 con la sesión de Enrique; la sube él)**: `Tesla T4, 15360 MiB`, `cuda:0` en las 10 corridas, 9 «OK» incl. «entrenamiento en T4», 18.1 s de entrenamiento (CPU: 32.1 s), 0.10 unidades de Colab. Evidencia: `avance2/entrega_t4/T4-EVIDENCIA.md`, `avance2_t4_output.ipynb/.html`; repetidos `avance3/entrega_t4/` y `avance5/entrega_t4/`. Falta solo que Enrique los suba a Moodle |
 | Validación y estudio técnico (12) | OK en `avance3.ipynb` y `avance5`; repetir tras T4 |
 | Estimaciones y predicciones (12) | OK en `avance5` (pronóstico fechado); repetir tras T4 |
-| Manejo de errores (15) | OK para el agente (sección A); «GPU y entrenamiento» (3) depende de la corrida en T4 → solo Enrique |
+| Manejo de errores (15) | OK para el agente (sección A); «GPU y entrenamiento» (3): corrida en T4 hecha (ver fila de T4) |
 | Agente y simulación (9) | OK en `avance4` y `backend/` |
 | Reproducibilidad (5) | OK (`README.md`, `requirements.txt`, pruebas) |
 
