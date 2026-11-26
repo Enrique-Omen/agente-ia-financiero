@@ -7,7 +7,7 @@ FastAPI que lee velas diarias **públicas** de MEXC (sin clave de trading), calc
 ```bash
 pip install -r requirements.txt
 # modelo/v1/ ya viene exportado. modelo/exportar.py lo regenera, pero necesita los datos del Avance 5 (no incluidos aquí).
-python -m pytest -q                  # 51 pruebas, sin red y con Ollama simulado (-m replay: solo el replay de 20 velas)
+python -m pytest -q                  # 54 pruebas, sin red y con Ollama simulado (-m replay: solo el replay de 20 velas)
 python replay_llm.py 5               # 5 velas con Ollama REAL → datos/replay-llm.db
 # En el servidor: copiar entorno.ejemplo como .env, poner una clave larga y cargarla en el entorno
 uvicorn app.main:crear_app --factory --port 8765
@@ -33,7 +33,7 @@ dio −0.21133 % para la vela del 4-nov, igual al cuaderno del Avance 5 (diferen
 `POST /ciclo` toma la última vela cerrada *t*: ejecuta a su **apertura** la decisión del cierre de *t*−1, valora al **cierre** de *t*
 y decide para *t*+1. Todo queda en SQLite en una sola transacción.
 
-**Decisión (escalón 3).** Ollama local (`LLM_MODELO`, por defecto `qwen2.5:1.5b`, en 127.0.0.1) recibe datos estructurados
+**Decisión (escalón 3).** Ollama local (`LLM_MODELO`, por defecto `qwen3:1.7b`, en 127.0.0.1) recibe datos estructurados
 (símbolo, fecha, cierre, pronóstico y variables en %, cartera, límites) y propone `{accion, simbolo, fecha_vela, justificacion}`
 con salida JSON forzada por esquema; `app/llm.py` la valida con pydantic (acción ∈ comprar/mantener/vender, campos extra
 prohibidos, símbolo y fecha iguales a los pedidos). Ollama caído, sin respuesta en `LLM_TIMEOUT_S`, propuesta inválida o con una acción imposible para la cartera → error
@@ -80,3 +80,38 @@ Operaciones = viajes compra → venta; el abierto al final se valora al último 
 el primer día y luego solo mantiene. **Modelo elegido: qwen2.5:1.5b** (el doble de rápido, 0 tiempos agotados, más coherente); el 7b no se
 probó: con 2 CPU sin GPU la latencia crece con el tamaño (15 s → 30 s de 1.5b a 3b) y pasaría del límite de 60 s (estimado, no medido).
 Antes de la UI hay que subir la coherencia (siguiente escalón).
+
+## Escalón 4b · coherencia del LLM (26-nov-2026)
+Cambio: `app/main.py` pasa en los datos la señal ya calculada (`senal`: umbral δ en %, `estimado_mayor_que_umbral`, `conviene_posicion` y
+`accion_sugerida` según la cartera) y `app/llm.py` la explica con la regla y un ejemplo por caso; además `think: false` (Qwen3 no razona en voz alta) y el
+esquema que fuerza Ollama fija también símbolo y fecha de la vela. El LLM sigue decidiendo: puede devolver otra acción permitida; riesgo y Paper se aplican igual.
+
+**Aviso de modelo.** En la caja de hoy, `qwen2.5:1.5b` (también su cuantización q8_0) devuelve texto sin sentido en esta versión de Ollama (0.40.14, CPU): con un
+«¿cuánto es 2+2?» responde basura (probado con 1, 2 y 6 hilos) y todas las propuestas agotan el límite de 60 s (20 respaldos de 20). `qwen3:8b` sí funciona
+pero es lento; `qwen3:1.7b` responde bien (≈13-16 s por propuesta) y es el modelo por defecto desde esta fecha. La tabla del §16 de arriba (5-nov, qwen2.5) queda como histórico.
+
+Medición `N_VELAS=20 python comparar.py qwen3:1.7b` (mismas 20 velas, 50,000 USDT, costo 0 %). Barra: coherencia ≥ 90 % y 0 respaldos; máximo 3 intentos de prompt:
+| Intento | Cambio | Coherencia | Respaldos | Rend. neto |
+|---|---|---|---|---|
+| 1 | señal (`conviene_posicion`) + regla y ejemplos en el prompt, `think: false` | 35 % | 1 | −1.369 % |
+| 2 | + `accion_sugerida` ya resuelta para la cartera | 100 % | 8 (el modelo escribió mal la fecha de la vela) | −0.47 % |
+| 3 | + el esquema de Ollama fija símbolo y fecha de la vela | **100 %** | **0** | −0.47 % |
+
+Resultado final (`datos/comparacion.csv`): con LLM qwen3:1.7b, −0.47 %, drawdown 1.29 %, Win Rate 25 %, 4 operaciones, 0 rechazadas, 0 respaldos, latencia 15.6 s media / 38.9 s máx.
+Por el LLM pasaron 20 propuestas válidas (4 comprar, 12 mantener, 4 vender). Interpretación honesta: con `accion_sugerida` el LLM copia la señal del modelo y su resultado
+es idéntico al de la regla (sin LLM): **no aporta valor medible sobre la regla** en estas 20 velas; solo la justificación en texto. Sin esa pista (intento 1) un modelo de 1.7B acierta 35 %.
+
+## Ciclo programado
+`python programador.py` llama a `POST /ciclo` una vez al día a las 00:05 UTC (clave desde el entorno del servidor; `--una-vez` para una sola llamada) y anota cada
+llamada en `datos/programador.log`. No acelera la frecuencia: dos llamadas el mismo día dan 409 sin orden. Para dejarlo fijo: un servicio o cron del servidor (no instalado aquí).
+
+## Frontend (escalón 5)
+`agente/frontend/` (React + TypeScript + Vite): activo, fecha de datos, pronóstico e indicadores, última decisión y motivo, estado de riesgo, cartera y patrimonio,
+órdenes, errores, y botones iniciar / pausar / detener / liquidar (con confirmación).
+```bash
+cd ../frontend && npm install
+cp entorno.ejemplo <archivo de entorno>   # el mismo nombre oculto que usa el backend; llenar la clave de la API y, si no es 127.0.0.1:8765, BACKEND_URL
+npm run dev                    # http://localhost:5173 ; la UI llama a /api/* y el proxy de Vite añade X-API-Key
+npm run build                  # tsc + vite build (para servir dist/ detrás de un proxy que ponga la cabecera)
+```
+La clave no lleva prefijo `VITE_`: solo la lee el servidor de Vite, nunca entra al JS del navegador.

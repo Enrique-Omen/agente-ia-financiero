@@ -1,6 +1,6 @@
 """Comparación del §16 en las mismas velas (16-oct a 4-nov-2026), 50,000 USDT y costo 0 %, por el ciclo completo del backend:
 sin LLM (regla del Avance 3), con LLM (uno por modelo) y comprar y mantener. Escribe datos/comparacion.csv y una base por estrategia.
-Uso: python comparar.py [modelo ...]   (por defecto qwen2.5:1.5b; Ollama en 127.0.0.1:11434; N_VELAS=20 para acortar)"""
+Uso: python comparar.py [modelo ...]   (por defecto qwen3:1.7b; Ollama en 127.0.0.1:11434; N_VELAS=20 para acortar)"""
 import csv, os, re, sqlite3, sys
 import pytest
 from app import main, paper
@@ -72,7 +72,7 @@ def comprar_y_mantener():
 
 
 if __name__ == "__main__":
-    modelos = sys.argv[1:] or ["qwen2.5:1.5b"]
+    modelos = sys.argv[1:] or ["qwen3:1.7b"]
     filas = [de_base("sin LLM (regla Avance 3)", correr(""))]
     filas += [de_base(f"con LLM {m}", correr(m)) for m in modelos]
     filas.append(comprar_y_mantener())

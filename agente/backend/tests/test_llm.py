@@ -101,3 +101,17 @@ def test_salud_reporta_llm_local(agente, monkeypatch):
     ollama(monkeypatch, lambda d: None)
     s = agente.c.get("/salud").json()["llm"]
     assert s["modelo"] == "qwen2.5:1.5b" and s["ollama"] == "0.0-prueba" and s["url"].startswith("http://127.0.0.1") and s["hardware"].startswith("CPU")
+
+
+def test_datos_incluyen_la_senal_ya_calculada_y_el_prompt_la_explica(agente, monkeypatch):
+    vistos = []
+    def mira(d):
+        vistos.append(d)
+        assert cuerpo_sistema() and "senal.conviene_posicion" in cuerpo_sistema()
+        return ok(d, "comprar")
+    cuerpo_sistema = lambda: llm.SISTEMA
+    ollama(monkeypatch, mira)
+    r = agente.vela(FECHAS[0])
+    s = vistos[0]["senal"]
+    assert s["umbral_pct"] == 0.05 and s["conviene_posicion"] == s["estimado_mayor_que_umbral"] == (r.json()["rendimiento_estimado"] > 0.0005)
+    assert llm.SISTEMA.count("conviene_posicion") >= 5 and s["accion_sugerida"] == ("comprar" if s["conviene_posicion"] else "mantener")   # sin posición

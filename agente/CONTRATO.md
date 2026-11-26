@@ -41,4 +41,4 @@ Se necesitan 21 cierres diarios consecutivos y cerrados. Modelo: el que el Avanc
 | Botón de detención | `/detener` (bloquea, no liquida) y `/liquidar` aparte; UI pendiente | escalón 2 (backend) |
 
 ## Configuración (solo en el servidor; `.env.example` sin valores)
-`AGENTE_API_KEY` (obligatoria; sin ella el backend no arranca), `MAX_ANTIGUEDAD_H` (36), `SIMBOLO` (BTCUSDT), `EXPOSICION_MAX` (1.0), `PERDIDA_DIARIA_MAX` (0.10), `AGENTE_DB` (datos/agente.db), `OLLAMA_URL` (http://127.0.0.1:11434), `LLM_MODELO` (qwen2.5:1.5b; vacío = sin LLM), `LLM_TIMEOUT_S` (60). Órdenes reales: no existe ninguna ruta que las envíe.
+`AGENTE_API_KEY` (obligatoria; sin ella el backend no arranca), `MAX_ANTIGUEDAD_H` (36), `SIMBOLO` (BTCUSDT), `EXPOSICION_MAX` (1.0), `PERDIDA_DIARIA_MAX` (0.10), `AGENTE_DB` (datos/agente.db), `OLLAMA_URL` (http://127.0.0.1:11434), `LLM_MODELO` (qwen3:1.7b; vacío = sin LLM), `LLM_TIMEOUT_S` (60). Órdenes reales: no existe ninguna ruta que las envíe.

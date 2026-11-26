@@ -30,7 +30,7 @@ def crear_app():
         raise RuntimeError("El modelo no corresponde al contrato de variables")
     reg = Registro(os.environ.get("AGENTE_DB", os.path.join(BACKEND, "datos", "agente.db")))
     ollama = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434")
-    llm_modelo = os.environ.get("LLM_MODELO", "qwen2.5:1.5b")   # vacío = sin LLM (solo la regla del Avance 3, para comparar)
+    llm_modelo = os.environ.get("LLM_MODELO", "qwen3:1.7b")   # vacío = sin LLM (solo la regla del Avance 3, para comparar)
     llm_timeout = float(os.environ.get("LLM_TIMEOUT_S", "60"))
     en_curso = threading.Lock()   # un ciclo (o liquidar) a la vez; el candado de la base se suelta mientras piensa el LLM
 
@@ -119,6 +119,8 @@ def crear_app():
                          "cartera": {"efectivo": round(cartera.efectivo, 2), "unidades_btc": cartera.unidades,
                                      "patrimonio": round(cartera.patrimonio(cierre), 2), "en_posicion": cartera.unidades > 0},
                          "limites": {"exposicion_max": limites.exposicion_max, "perdida_diaria_max": limites.perdida_diaria_max},
+                         "senal": {"umbral_pct": pct(UMBRAL), "estimado_mayor_que_umbral": est > UMBRAL, "conviene_posicion": est > UMBRAL,
+                                   "accion_sugerida": ("mantener" if est > UMBRAL else "vender") if cartera.unidades > 0 else ("comprar" if est > UMBRAL else "mantener")},
                          "acciones_permitidas": ["mantener", "vender"] if cartera.unidades > 0 else ["comprar", "mantener"]}
         falla = None
         if llm_modelo:
