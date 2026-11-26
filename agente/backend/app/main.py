@@ -1,4 +1,4 @@
-"""API del agente: /salud, /pronostico y el ciclo Paper (/ciclo, /estado, /iniciar, /pausar, /detener, /liquidar).
+"""API del agente: /salud, /pronostico y el ciclo Paper (/ciclo, /estado, /historial, /iniciar, /pausar, /detener, /liquidar).
 Arranque: uvicorn app.main:crear_app --factory. La clave vive solo en el servidor (AGENTE_API_KEY); nunca se registra ni se devuelve.
 Órdenes reales: ninguna ruta. Todo es Paper."""
 import hmac, json, logging, os, threading, time
@@ -150,6 +150,15 @@ def crear_app():
                     "ordenes": [dict(o) for o in reg.db.execute("SELECT * FROM ordenes ORDER BY id DESC LIMIT 20")],
                     "errores": [dict(e) for e in reg.db.execute("SELECT * FROM errores ORDER BY id DESC LIMIT 20")],
                     "limites": asdict(limites), "mercado": paper.MERCADO, "capital_inicial": paper.CAPITAL, "costo": paper.COSTO}
+
+    @app.get("/historial", dependencies=[Depends(exigir_clave)])
+    def historial():
+        """Solo lectura para las gráficas: patrimonio y precio por vela, y las órdenes ejecutadas (marcas de compra/venta)."""
+        with reg.candado:
+            return {"velas": [dict(r) for r in reg.db.execute("SELECT fecha, precio, patrimonio FROM patrimonio ORDER BY fecha")],
+                    "ordenes": [dict(r) for r in reg.db.execute(
+                        "SELECT fecha, lado, precio FROM ordenes WHERE estado='ejecutada' ORDER BY id")],
+                    "capital_inicial": paper.CAPITAL}
 
     def cambiar(valor):
         with reg.candado:

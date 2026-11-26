@@ -138,3 +138,16 @@ def test_simbolo_no_permitido():
 def test_no_hay_ruta_de_ordenes(cliente):
     rutas = {r.path for r in cliente.app.routes}
     assert not any(p in ruta.lower() for ruta in rutas for p in ["orden", "order", "trade"])
+
+
+def test_historial_lee_velas_y_ordenes_ejecutadas_y_pide_clave(cliente):
+    assert cliente.get("/historial").status_code == 401
+    vacio = cliente.get("/historial", headers={"X-API-Key": CLAVE}).json()
+    assert vacio["velas"] == [] and vacio["ordenes"] == []
+    reg = main.Registro(os.environ["AGENTE_DB"])   # misma base que usa el cliente (AGENTE_DB)
+    reg.db.execute("INSERT INTO velas VALUES ('2026-11-01', 1, 2, 'x')")
+    reg.db.execute("INSERT INTO patrimonio VALUES ('2026-11-01', 10, 0, 2, 10)")
+    reg.db.execute("INSERT INTO ordenes (fecha, lado, cantidad, precio, estado, motivo) VALUES ('2026-11-01','compra',1,2,'ejecutada','m'), ('2026-11-01','venta',1,2,'rechazada','m')")
+    h = cliente.get("/historial", headers={"X-API-Key": CLAVE}).json()
+    assert h["velas"] == [{"fecha": "2026-11-01", "precio": 2, "patrimonio": 10}]
+    assert h["ordenes"] == [{"fecha": "2026-11-01", "lado": "compra", "precio": 2}]

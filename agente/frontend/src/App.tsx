@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import Grafica from "./Grafica";
+import "./estilos.css";
 
 type Orden = { id: number; fecha: string; lado: string; cantidad: number; precio: number; estado: string; motivo: string };
 type Fallo = { id: number; momento: string; etapa: string; detalle: string };
@@ -13,6 +15,8 @@ type Estado = {
 
 type Pron = { vela: string; cierre_base: number; rendimiento_estimado: number; variables: Record<string, number>; modelo: string };
 
+type Hist = { velas: { fecha: string; precio: number; patrimonio: number }[]; ordenes: { fecha: string; lado: string; precio: number }[]; capital_inicial: number };
+
 const usd = (x: number) => x.toLocaleString("en-US", { maximumFractionDigits: 2 });
 
 async function llamar(ruta: string, metodo = "GET") {
@@ -22,14 +26,23 @@ async function llamar(ruta: string, metodo = "GET") {
   return cuerpo;
 }
 
+const pct = (x: number, d = 2) => `${x >= 0 ? "+" : ""}${(100 * x).toFixed(d)} %`;
+const corto = (x: number) => (Math.abs(x) >= 1000 ? `${(x / 1000).toFixed(1)}k` : x.toFixed(0));
+// El motivo del LLM viene como "LLM modelo · Ollama … · 6655 ms: justificación"; se separa la ficha técnica de la justificación.
+const partir = (m: string) => { const i = m.indexOf(" ms: "); return i < 0 ? { ficha: "", texto: m } : { ficha: m.slice(0, i + 3), texto: m.slice(i + 5) }; };
+
 export default function App() {
   const [e, setE] = useState<Estado | null>(null);
   const [p, setP] = useState<Pron | null>(null);
+  const [h, setH] = useState<Hist | null>(null);
   const [falla, setFalla] = useState("");
+  const [tema, setTema] = useState(() => localStorage.getItem("tema") ?? (matchMedia("(prefers-color-scheme: light)").matches ? "claro" : "oscuro"));
+  useEffect(() => { document.documentElement.dataset.tema = tema; localStorage.setItem("tema", tema); }, [tema]);
 
   const cargar = useCallback(
     () => {
       llamar("/pronostico").then(setP, () => setP(null));   // si MEXC falla, /estado sigue mostrando el resto
+      llamar("/historial").then(setH, () => setH(null));
       return llamar("/estado").then((x) => { setE(x); setFalla(""); }, (x) => setFalla((x as Error).message));
     },
     [],
@@ -43,38 +56,112 @@ export default function App() {
   };
 
   const d = e?.ultima_decision, v = e?.ultima_vela;
-  const c = { textAlign: "left", paddingRight: 12 } as const;
+  const velas = h?.velas ?? [];
+  const fechas = velas.map((x) => x.fecha);
+  const capital = e?.capital_inicial ?? 0;
+  const rend = v && capital ? v.patrimonio / capital - 1 : null;
+  const hold = velas.length ? velas.map((x) => (capital * x.precio) / velas[0].precio) : [];
+  const rendHold = hold.length ? hold[hold.length - 1] / capital - 1 : null;
+  const marcas = (h?.ordenes ?? []).map((o) => ({ i: fechas.indexOf(o.fecha), lado: o.lado })).filter((m) => m.i >= 0);
+  const dec = d ? partir(d.motivo) : null;
+  const bloqueado = e?.estado === "detenido";
+
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 900, margin: "1rem auto", padding: "0 1rem" }}>
-      <h1>Agente de IA · {e?.simbolo ?? "…"} (Paper)</h1>
-      {falla && <p role="alert" style={{ color: "#b00020" }}>Error: {falla}</p>}
-      {e && <>
-        <p>Estado: <b>{e.estado}</b>{" "}
-          <button onClick={accion("/iniciar")}>Iniciar</button>{" "}
-          <button onClick={accion("/pausar")}>Pausar</button>{" "}
-          <button onClick={accion("/detener", "Detener bloquea toda orden nueva. ¿Seguro?")}>Detener</button>{" "}
-          <button onClick={accion("/liquidar", "Vender toda la posición al último cierre. ¿Seguro?")}>Liquidar</button></p>
+    <div className="app">
+      <header>
+        <div>
+          <span className="ojo">{e?.simbolo ?? "BTCUSDT"} · simulación en papel</span>
+          <h1>Agente de IA financiero</h1>
+        </div>
+        <div className="barra">
+          <button className="ghost" onClick={() => setTema(tema === "oscuro" ? "claro" : "oscuro")} aria-label="Cambiar tema">{tema === "oscuro" ? "Claro" : "Oscuro"}</button>
+          <button onClick={accion("/iniciar")}>Iniciar</button>
+          <button onClick={accion("/pausar")}>Pausar</button>
+          <button className="aviso" onClick={accion("/detener", "Detener bloquea toda orden nueva. ¿Seguro?")}>Detener</button>
+          <button className="aviso" onClick={accion("/liquidar", "Vender toda la posición al último cierre. ¿Seguro?")}>Liquidar</button>
+        </div>
+      </header>
+      {falla && <p role="alert" className="alerta">Error: {falla}</p>}
+      {!e && !falla && <p className="vacio">Cargando…</p>}
+      {e && <main>
+        <section className="kpis">
+          <article className="tarjeta">
+            <span className="ojo">Estado</span>
+            <b className={`estado ${e.estado}`}><i />{e.estado}</b>
+            <small>Costo por operación {e.costo}</small>
+          </article>
+          <article className="tarjeta">
+            <span className="ojo">Patrimonio</span>
+            <b className="num">{v ? usd(v.patrimonio) : "—"}<u>USDT</u></b>
+            <small>Capital inicial {usd(e.capital_inicial)}{rend !== null && <> · <span className={rend >= 0 ? "sube" : "baja"}>{pct(rend)}</span></>}</small>
+          </article>
+          <article className="tarjeta">
+            <span className="ojo">Cartera</span>
+            <b className="num">{usd(e.efectivo)}<u>USDT</u></b>
+            <small>Posición {e.unidades} BTC · exp. máx. {pct(e.limites.exposicion_max, 0).replace("+", "")}</small>
+          </article>
+          <article className="tarjeta">
+            <span className="ojo">Pronóstico · próxima vela</span>
+            {p ? <><b className={`num ${p.rendimiento_estimado >= 0 ? "sube" : "baja"}`}>{pct(p.rendimiento_estimado, 3)}</b>
+              <small>Cierre base {usd(p.cierre_base)} · {p.modelo}</small></>
+              : <><b className="num">—</b><small>Sin datos válidos de MEXC</small></>}
+          </article>
+        </section>
 
-        <h2>Cartera</h2>
-        <p>Efectivo {usd(e.efectivo)} USDT · posición {e.unidades} BTC · patrimonio {v ? usd(v.patrimonio) : "—"} USDT
-          (capital inicial {usd(e.capital_inicial)}, costo {e.costo}) · límites: exposición {e.limites.exposicion_max}, pérdida diaria {e.limites.perdida_diaria_max}</p>
+        <section className="graficas">
+          <article className="tarjeta">
+            <div className="cab"><h2>Patrimonio del agente vs comprar y mantener</h2>
+              {rend !== null && rendHold !== null && <span className="resumen">Agente <b className={rend >= 0 ? "sube" : "baja"}>{pct(rend)}</b> · B&amp;H <b className={rendHold >= 0 ? "sube" : "baja"}>{pct(rendHold)}</b></span>}</div>
+            <Grafica fechas={fechas} formato={corto}
+              series={[{ nombre: "Agente", color: "var(--acento)", valores: velas.map((x) => x.patrimonio), area: true },
+                       { nombre: "Comprar y mantener", color: "var(--tenue)", valores: hold, trazo: "5 4" }]} />
+          </article>
+          <article className="tarjeta">
+            <div className="cab"><h2>Precio {e.simbolo} y operaciones</h2><span className="resumen">cierre diario</span></div>
+            <Grafica fechas={fechas} formato={corto} marcas={marcas}
+              series={[{ nombre: "Precio de cierre", color: "var(--texto2)", valores: velas.map((x) => x.precio) }]} />
+          </article>
+        </section>
 
-        <h2>Pronóstico e indicadores</h2>
-        {p ? <p>Vela de datos {p.vela} (cierre {usd(p.cierre_base)}) · modelo {p.modelo} · rendimiento estimado <b>{(100 * p.rendimiento_estimado).toFixed(3)} %</b><br />
-          dist_sma20 {(100 * p.variables.dist_sma20).toFixed(2)} % · vol20 {(100 * p.variables.vol20).toFixed(2)} % · r_lag0 {(100 * p.variables.r_lag0).toFixed(2)} %</p>
-          : <p>Sin pronóstico (datos de MEXC no válidos o sin respuesta).</p>}
+        <section className="dos">
+          <article className="tarjeta decision">
+            <div className="cab"><h2>Última decisión del LLM</h2>{d && <span className="resumen mono">vela {d.fecha}</span>}</div>
+            {d && dec ? <>
+              <div className="fila">
+                <span className={`etiqueta ${d.accion}`}>{d.accion}</span>
+                <span className={`veredicto ${bloqueado ? "no" : "ok"}`}>Riesgo: {bloqueado ? "bloqueado" : "dentro de límites"}</span>
+                <span className="resumen mono">estimado {pct(d.rendimiento_estimado, 3)}</span>
+              </div>
+              <p className="justif">{dec.texto}</p>
+              {dec.ficha && <small className="ficha">{dec.ficha}</small>}
+            </> : <p className="vacio">Sin decisiones todavía.</p>}
+          </article>
+          <article className="tarjeta">
+            <div className="cab"><h2>Indicadores</h2>{p && <span className="resumen mono">vela {p.vela}</span>}</div>
+            {p ? <dl className="indic">
+              {Object.entries(p.variables).map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{(100 * x).toFixed(2)} %</dd></div>)}
+            </dl> : <p className="vacio">Sin pronóstico (datos de MEXC no válidos o sin respuesta).</p>}
+            <small className="ficha">Pérdida diaria máx. {pct(e.limites.perdida_diaria_max, 0).replace("+", "")} · exposición máx. {pct(e.limites.exposicion_max, 0).replace("+", "")}</small>
+          </article>
+        </section>
 
-        <h2>Última decisión</h2>
-        {d ? <p>Vela {d.fecha}: <b>{d.accion}</b> (riesgo: {e.estado === "detenido" ? "bloqueado" : "dentro de límites"}) · estimado {(100 * d.rendimiento_estimado).toFixed(3)} %<br />{d.motivo}</p> : <p>Sin decisiones todavía.</p>}
+        <section className="tarjeta">
+          <div className="cab"><h2>Órdenes</h2><span className="resumen">últimas 20</span></div>
+          {e.ordenes.length === 0 ? <p className="vacio">Sin órdenes.</p> :
+            <div className="tabla"><table>
+              <thead><tr><th>Fecha</th><th>Lado</th><th className="d">Cantidad</th><th className="d">Precio</th><th>Estado</th><th>Motivo</th></tr></thead>
+              <tbody>{e.ordenes.map((o) => <tr key={o.id}>
+                <td className="mono">{o.fecha}</td><td><span className={`etiqueta ${o.lado}`}>{o.lado}</span></td>
+                <td className="mono d">{o.cantidad}</td><td className="mono d">{usd(o.precio)}</td>
+                <td>{o.estado}</td><td className="mot">{o.motivo}</td></tr>)}</tbody></table></div>}
+        </section>
 
-        <h2>Órdenes (últimas 20)</h2>
-        <table><thead><tr>{["Fecha", "Lado", "Cantidad", "Precio", "Estado", "Motivo"].map((h) => <th key={h} style={c}>{h}</th>)}</tr></thead>
-          <tbody>{e.ordenes.map((o) => <tr key={o.id}><td style={c}>{o.fecha}</td><td style={c}>{o.lado}</td><td style={c}>{o.cantidad}</td><td style={c}>{usd(o.precio)}</td><td style={c}>{o.estado}</td><td style={c}>{o.motivo}</td></tr>)}</tbody></table>
-
-        <h2>Errores (últimos 20)</h2>
-        {e.errores.length === 0 ? <p>Ninguno.</p> :
-          <ul>{e.errores.map((r) => <li key={r.id}>{r.momento} · <b>{r.etapa}</b>: {r.detalle}</li>)}</ul>}
-      </>}
-    </main>
+        <section className="tarjeta">
+          <div className="cab"><h2>Errores</h2><span className="resumen">últimos 20</span></div>
+          {e.errores.length === 0 ? <p className="vacio">Ninguno.</p> :
+            <ul className="errores">{e.errores.map((r) => <li key={r.id}><span className="mono">{r.momento}</span> <b>{r.etapa}</b> {r.detalle}</li>)}</ul>}
+        </section>
+      </main>}
+    </div>
   );
 }
