@@ -51,8 +51,8 @@ export default function Grafica({ fechas, series, marcas = [], formato, alto = 2
         </g>)}
         {marcas.map((m, k) => {
           const y = Y(series[0].valores[m.i]), compra = m.lado === "compra", x = X(m.i);
-          return <path key={k} className={compra ? "m-compra" : "m-venta"}
-            d={compra ? `M${x},${y - 3}l6,-11h-12z` : `M${x},${y + 3}l6,11h-12z`}>
+          return <path key={k} data-fecha={fechas[m.i]} data-lado={m.lado} className={compra ? "m-compra" : "m-venta"}
+            d={compra ? `M${x},${y + 3}l6,11h-12z` : `M${x},${y - 3}l6,-11h-12z`}>
             <title>{`${compra ? "Compra" : "Venta"} · ${fechas[m.i]}`}</title></path>;
         })}
         {hover !== null && <g>

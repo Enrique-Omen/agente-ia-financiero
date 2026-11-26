@@ -31,6 +31,13 @@ const corto = (x: number) => (Math.abs(x) >= 1000 ? `${(x / 1000).toFixed(1)}k` 
 // El motivo del LLM viene como "LLM modelo · Ollama … · 6655 ms: justificación"; se separa la ficha técnica de la justificación.
 const partir = (m: string) => { const i = m.indexOf(" ms: "); return i < 0 ? { ficha: "", texto: m } : { ficha: m.slice(0, i + 3), texto: m.slice(i + 5) }; };
 
+const CLAVES: [string, string][] = [
+  ["dist_sma20", "Distancia del cierre a su media móvil de 20 días."],
+  ["vol20", "Volatilidad: desviación de los rendimientos de 20 días."],
+  ["r_lag0", "Rendimiento del último día."],
+  ["r_lag1", "Rendimiento de hace dos días."],
+];
+
 export default function App() {
   const [e, setE] = useState<Estado | null>(null);
   const [p, setP] = useState<Pron | null>(null);
@@ -70,7 +77,7 @@ export default function App() {
     <div className="app">
       <header>
         <div>
-          <span className="ojo">{e?.simbolo ?? "BTCUSDT"} · simulación en papel</span>
+          <span className="ojo">{e?.simbolo ?? "BTCUSDT"} · simulación en papel{import.meta.env.VITE_DEMO && <em className="demo">demo: replay de 20 velas</em>}</span>
           <h1>Agente de IA financiero</h1>
         </div>
         <div className="barra">
@@ -101,9 +108,9 @@ export default function App() {
             <small>Posición {e.unidades} BTC · exp. máx. {pct(e.limites.exposicion_max, 0).replace("+", "")}</small>
           </article>
           <article className="tarjeta">
-            <span className="ojo">Pronóstico · próxima vela</span>
+            <span className="ojo">Pronóstico</span>
             {p ? <><b className={`num ${p.rendimiento_estimado >= 0 ? "sube" : "baja"}`}>{pct(p.rendimiento_estimado, 3)}</b>
-              <small>Cierre base {usd(p.cierre_base)} · {p.modelo}</small></>
+              <small>Vela {p.vela} (MEXC en vivo) · {p.modelo}</small></>
               : <><b className="num">—</b><small>Sin datos válidos de MEXC</small></>}
           </article>
         </section>
@@ -124,24 +131,38 @@ export default function App() {
         </section>
 
         <section className="dos">
-          <article className="tarjeta decision">
-            <div className="cab"><h2>Última decisión del LLM</h2>{d && <span className="resumen mono">vela {d.fecha}</span>}</div>
-            {d && dec ? <>
-              <div className="fila">
-                <span className={`etiqueta ${d.accion}`}>{d.accion}</span>
-                <span className={`veredicto ${bloqueado ? "no" : "ok"}`}>Riesgo: {bloqueado ? "bloqueado" : "dentro de límites"}</span>
-                <span className="resumen mono">estimado {pct(d.rendimiento_estimado, 3)}</span>
-              </div>
-              <p className="justif">{dec.texto}</p>
-              {dec.ficha && <small className="ficha">{dec.ficha}</small>}
-            </> : <p className="vacio">Sin decisiones todavía.</p>}
-          </article>
+          <div className="col">
+            <article className="tarjeta decision">
+              <div className="cab"><h2>Última decisión del LLM</h2>{d && <span className="resumen mono">vela procesada {d.fecha}</span>}</div>
+              {d && dec ? <>
+                <div className="fila">
+                  <span className={`etiqueta ${d.accion}`}>{d.accion}</span>
+                  <span className="resumen mono">estimado {pct(d.rendimiento_estimado, 3)}</span>
+                </div>
+                <p className="justif">{dec.texto}</p>
+                {dec.ficha && <small className="ficha">{dec.ficha}</small>}
+              </> : <p className="vacio">Sin decisiones todavía.</p>}
+            </article>
+            <article className="tarjeta">
+              <div className="cab"><h2>Riesgo y límites</h2></div>
+              <span className={`veredicto ${bloqueado ? "no" : "ok"}`}>Veredicto: {bloqueado ? "bloqueado" : "dentro de límites"}</span>
+              <dl className="indic dos-col">
+                <div><dt>Exposición máxima</dt><dd>{pct(e.limites.exposicion_max, 0).replace("+", "")}</dd></div>
+                <div><dt>Pérdida diaria máxima</dt><dd>{pct(e.limites.perdida_diaria_max, 0).replace("+", "")}</dd></div>
+              </dl>
+            </article>
+          </div>
           <article className="tarjeta">
-            <div className="cab"><h2>Indicadores</h2>{p && <span className="resumen mono">vela {p.vela}</span>}</div>
-            {p ? <dl className="indic">
-              {Object.entries(p.variables).map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{(100 * x).toFixed(2)} %</dd></div>)}
-            </dl> : <p className="vacio">Sin pronóstico (datos de MEXC no válidos o sin respuesta).</p>}
-            <small className="ficha">Pérdida diaria máx. {pct(e.limites.perdida_diaria_max, 0).replace("+", "")} · exposición máx. {pct(e.limites.exposicion_max, 0).replace("+", "")}</small>
+            <div className="cab"><h2>Indicadores</h2>{p && <span className="resumen mono">datos al {p.vela}</span>}</div>
+            {p ? <>
+              <dl className="claves">
+                {CLAVES.map(([k, ayuda]) => <div key={k}><dt className="mono">{k}</dt><dd className="mono">{(100 * p.variables[k]).toFixed(2)} %</dd><span>{ayuda}</span></div>)}
+              </dl>
+              <details><summary>Ver los 20 rezagos</summary>
+                <dl className="indic">
+                  {Object.entries(p.variables).filter(([k]) => k.startsWith("r_lag")).map(([k, x]) => <div key={k}><dt>{k}</dt><dd>{(100 * x).toFixed(2)} %</dd></div>)}
+                </dl></details>
+            </> : <p className="vacio">Sin pronóstico (datos de MEXC no válidos o sin respuesta).</p>}
           </article>
         </section>
 

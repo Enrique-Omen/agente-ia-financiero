@@ -77,3 +77,10 @@ tbody tr:hover { background:var(--sombra-b); }
   .barra { width:100%; } .barra button { flex:1 1 auto; } .justif { font-size:15px; }
 }
 @media (prefers-reduced-motion:reduce) { * { transition:none !important; } }
+.demo { font-style:normal; margin-left:10px; padding:2px 8px; border:1px solid var(--acento); color:var(--acento); border-radius:99px; letter-spacing:.04em; text-transform:none; }
+.col { display:grid; gap:16px; align-content:start; }
+.claves { margin:0 0 14px; } .claves div { display:grid; grid-template-columns:1fr auto; gap:0 12px; padding:10px 0; border-bottom:1px solid var(--linea); }
+.claves dt { font-size:13px; } .claves dd { margin:0; font-size:18px; font-weight:600; } .claves span { grid-column:1/-1; font-size:12px; color:var(--tenue); }
+details summary { cursor:pointer; font-size:13px; color:var(--texto2); padding:4px 0; } details summary:hover { color:var(--acento); }
+details .indic { margin-top:10px; }
+.indic.dos-col { grid-template-columns:1fr 1fr; margin:14px 0 0; }
