@@ -1,0 +1,4 @@
+estrategia,rendimiento_neto_%,drawdown_max_%,win_rate_%,operaciones,patrimonio_final,ordenes_rechazadas,respaldos_llm,coherencia_con_pronostico_%,latencia_media_ms,latencia_max_ms
+sin LLM (regla Avance 3),-0.47,1.29,25.0,4,49765.16,0,0,100.0,,
+con LLM qwen3:1.7b,-0.47,1.29,25.0,4,49765.16,0,0,100.0,15599,38874
+comprar y mantener,-1.352,8.653,0.0,1,49323.93,0,,,,
